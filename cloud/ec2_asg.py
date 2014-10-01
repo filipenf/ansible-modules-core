@@ -245,7 +245,7 @@ def get_properties(autoscaling_group):
                 properties['pending_instances'] += 1
         properties['instance_facts'] = instance_facts
     properties['load_balancers'] = autoscaling_group.load_balancers
-    properties['tags'] = [{ 'key': t.key, 'value' : t.value} for t in tags ]
+    properties['tags'] = [{ 'key': t.key, 'value' : t.value} for t in properties['tags'] ]
     return properties
 
 

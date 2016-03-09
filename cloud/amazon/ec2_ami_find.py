@@ -121,7 +121,12 @@ options:
       - Virtualization type to match (e.g. hvm).
     default: null
     required: false
-  no_result_action:
+  root_device_type:
+    description:
+      - Root device type of the AMI (ebs or instance_store)
+    default: null
+    required: false
+   no_result_action:
     description:
       - What to do when no results are found.
       - "'success' reports success and returns an empty array"
@@ -315,6 +320,7 @@ def main():
             virtualization_type = dict(required=False),
             no_result_action = dict(required=False, default='success',
                 choices = ['success', 'fail']),
+            root_device_type = dict(required=False),
         )
     )
 
@@ -341,6 +347,7 @@ def main():
     state = module.params.get('state')
     virtualization_type = module.params.get('virtualization_type')
     no_result_action = module.params.get('no_result_action')
+    root_device_type = module.params.get('root_device_type')
 
     filter = {'state': state}
 
@@ -361,6 +368,8 @@ def main():
         filter['platform'] = platform
     if virtualization_type:
         filter['virtualization_type'] = virtualization_type
+    if root_device_type:
+        filter['root_device_type'] = root_device_type
 
     ec2 = ec2_connect(module)
 

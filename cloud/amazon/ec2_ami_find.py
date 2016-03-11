@@ -83,7 +83,7 @@ options:
     description:
       - Optional attribute which with to sort the results.
       - If specifying 'tag', the 'tag_name' parameter is required.
-    choices: ['name', 'description', 'tag']
+    choices: ['name', 'description', 'tag', 'creationDate']
     default: null
     required: false
   sort_tag:
@@ -137,7 +137,6 @@ requirements:
 
 EXAMPLES = '''
 # Note: These examples do not set authentication details, see the AWS Guide for details.
-
 # Search for the AMI tagged "project:website"
 - ec2_ami_find:
     owner: self
@@ -161,6 +160,16 @@ EXAMPLES = '''
     instance_type: m3.medium
     key_name: mykey
     wait: yes
+
+# Search for the latest Amazon Linux AMI
+- ec2_ami_find:
+    owner: amazon
+    name: "amzn-ami-hvm*gp2"
+    region: us-east-1
+    sort: creationDate
+    sort_order: descending
+    sort_end: 1
+  register: ami_find
 '''
 
 RETURN = '''
@@ -303,7 +312,7 @@ def main():
             name = dict(required=False),
             platform = dict(required=False),
             sort = dict(required=False, default=None,
-                choices=['name', 'description', 'tag']),
+                choices=['name', 'description', 'tag', 'creationDate']),
             sort_tag = dict(required=False),
             sort_order = dict(required=False, default='ascending',
                 choices=['ascending', 'descending']),

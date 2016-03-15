@@ -136,14 +136,21 @@ try:
 except ImportError:
     HAS_BOTO = False
 
+def is_valid_port(s):
+    try:
+        val = int(s)
+        return val > 0 and val < 65536
+    except:
+        return False
 
 def make_rule_key(prefix, rule, group_id, cidr_ip):
     """Creates a unique key for an individual group rule"""
     if isinstance(rule, dict):
         proto, from_port, to_port = [rule.get(x, None) for x in ('proto', 'from_port', 'to_port')]
         #fix for 11177
-        if proto not in ['icmp', 'tcp', 'udp'] and from_port == -1 and to_port == -1:
+        if not is_valid_port(from_port):
             from_port = 'none'
+        if not is_valid_port(to_port):
             to_port   = 'none'
 
     else:  # isinstance boto.ec2.securitygroup.IPPermissions

@@ -132,6 +132,7 @@ EXAMPLES = '''
 try:
     import boto.ec2
     from boto.ec2.securitygroup import SecurityGroup
+    from boto.ec2.securitygroup import IPPermissions
     HAS_BOTO = True
 except ImportError:
     HAS_BOTO = False
@@ -143,20 +144,33 @@ def is_valid_port(s):
     except:
         return False
 
+class PermissionWrapper(object):
+    def __init__(self, rule):
+        self.rule = rule
+
+    def __getitem__(self, key):
+        result = None
+        if isinstance(self.rule, dict):
+            result = self.rule[key]
+        else:
+            result = getattr(self.rule, key)
+        if key in ('to_port', 'from_port') and not is_valid_port(result):
+            return None
+        if key == 'proto' and result in ('all', '-1'):
+            return -1
+        return result
+
+    def get_protocol(self):
+        if isinstance(self.rule, IPPermissions):
+            return self['ip_protocol']
+        else:
+            return self['proto']
+
 def make_rule_key(prefix, rule, group_id, cidr_ip):
     """Creates a unique key for an individual group rule"""
-    if isinstance(rule, dict):
-        proto, from_port, to_port = [rule.get(x, None) for x in ('proto', 'from_port', 'to_port')]
-        #fix for 11177
-        if not is_valid_port(from_port):
-            from_port = 'none'
-        if not is_valid_port(to_port):
-            to_port   = 'none'
-
-    else:  # isinstance boto.ec2.securitygroup.IPPermissions
-        proto, from_port, to_port = [getattr(rule, x, None) for x in ('ip_protocol', 'from_port', 'to_port')]
-
-    key = "%s-%s-%s-%s-%s-%s" % (prefix, proto, from_port, to_port, group_id, cidr_ip)
+    p = PermissionWrapper(rule)
+    key = "%s-%s-%s-%s-%s-%s" % (prefix, p.get_protocol(), p['from_port'],
+                                 p['to_port'], group_id, cidr_ip)
     return key.lower().replace('-none', '-None')
 
 
@@ -351,11 +365,6 @@ def main():
                 if target_group_created:
                     changed = True
 
-                if rule['proto'] in ('all', '-1', -1):
-                    rule['proto'] = -1
-                    rule['from_port'] = None
-                    rule['to_port'] = None
-
                 # Convert ip to list we can iterate over
                 if not isinstance(ip, list):
                     ip = [ip]
@@ -402,11 +411,6 @@ def main():
                 group_id, ip, target_group_created = get_target_from_rule(module, ec2, rule, name, group, groups, vpc_id)
                 if target_group_created:
                     changed = True
-
-                if rule['proto'] in ('all', '-1', -1):
-                    rule['proto'] = -1
-                    rule['from_port'] = None
-                    rule['to_port'] = None
 
                 # Convert ip to list we can iterate over
                 if not isinstance(ip, list):

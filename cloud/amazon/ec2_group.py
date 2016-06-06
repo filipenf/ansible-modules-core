@@ -365,6 +365,11 @@ def main():
                 if target_group_created:
                     changed = True
 
+                if rule['proto'] in ('all', '-1', -1):
+                    rule['proto'] = -1
+                    rule['from_port'] = None
+                    rule['to_port'] = None
+
                 # Convert ip to list we can iterate over
                 if not isinstance(ip, list):
                     ip = [ip]
@@ -411,6 +416,11 @@ def main():
                 group_id, ip, target_group_created = get_target_from_rule(module, ec2, rule, name, group, groups, vpc_id)
                 if target_group_created:
                     changed = True
+
+                if rule['proto'] in ('all', '-1', -1):
+                    rule['proto'] = -1
+                    rule['from_port'] = None
+                    rule['to_port'] = None
 
                 # Convert ip to list we can iterate over
                 if not isinstance(ip, list):

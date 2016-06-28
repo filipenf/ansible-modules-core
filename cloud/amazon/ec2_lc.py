@@ -53,7 +53,7 @@ options:
     required: false
   security_groups:
     description:
-      - A list of security groups to apply to the instances. For VPC instances, specify security group IDs. For EC2-Classic, specify either security group names or IDs.
+      - A list of security groups to apply to the instances. Since 2.2 this list may mix security group names and ids.
     required: false
   volumes:
     description:
@@ -109,7 +109,7 @@ options:
 extends_documentation_fragment:
     - aws
     - ec2
-requires: 
+requires:
     - "boto >= 2.39.0"
 """
 
@@ -164,12 +164,20 @@ def create_block_device(module, volume):
                            delete_on_termination=volume.get('delete_on_termination', False),
                            iops=volume.get('iops'))
 
+def normalize_sg_list(module):
+    region, ec2_url, aws_connect_params = get_aws_connection_info(module)
+    try:
+        connection = connect_to_aws(boto.ec2, region, **aws_connect_params)
+    except (boto.exception.NoAuthHandlerFound, AnsibleAWSError) as e:
+        module.fail_json(msg=str(e))
+    return get_ec2_security_group_ids_from_names(module.params.get('security_groups'), connection, boto3=False)
+
 
 def create_launch_config(connection, module):
     name = module.params.get('name')
     image_id = module.params.get('image_id')
     key_name = module.params.get('key_name')
-    security_groups = module.params['security_groups']
+    security_groups = normalize_sg_list(module)
     user_data = module.params.get('user_data')
     volumes = module.params['volumes']
     instance_type = module.params.get('instance_type')
